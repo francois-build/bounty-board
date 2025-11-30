@@ -1,95 +1,136 @@
 
-process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8080';
 import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
-import { faker } from '@faker-js/faker';
 
-admin.initializeApp({
-  projectId: 'bridge-by-mosaic',
-});
-
-const db = getFirestore();
-
-const createAdmin = async () => {
-  const adminEmail = 'admin@bridge.com';
-  const adminId = faker.string.uuid();
-  const adminRef = db.collection('users').doc(adminId);
-  await adminRef.set({
-    email: adminEmail,
-    role: 'admin',
-    createdAt: admin.firestore.Timestamp.now(),
+// --- Configuration ---
+// Connect to the emulator if FIRESTORE_EMULATOR_HOST is set, otherwise connect to the actual project
+if (process.env.FIRESTORE_EMULATOR_HOST) {
+  console.log(`Using Firestore Emulator at ${process.env.FIRESTORE_EMULATOR_HOST}`);
+  admin.initializeApp({
+    projectId: 'demo-project', // A mock project ID for the emulator
   });
-  console.log(`Admin user created with email: ${adminEmail}`);
-};
+} else {
+  // IMPORTANT: For production, ensure you have GOOGLE_APPLICATION_CREDENTIALS set
+  console.log('Connecting to live Firebase project...');
+  admin.initializeApp();
+}
 
-const createMockChallenges = async () => {
-  const challengesRef = db.collection('challenges');
-  for (let i = 0; i < 50; i++) {
-    const challengeId = faker.string.uuid();
-    const challengeRef = challengesRef.doc(challengeId);
-    await challengeRef.set({
-      title: faker.company.catchPhrase(),
-      description: faker.lorem.paragraphs(),
-      isStealth: faker.datatype.boolean(),
-      ownerId: faker.string.uuid(),
-      createdAt: admin.firestore.Timestamp.now(),
-    });
+
+const auth = admin.auth();
+const db = admin.firestore();
+
+// --- Main Seeding Function ---
+async function seedDatabase() {
+  console.log('Starting database seeding...');
+  const password = 'password123';
+
+  // --- 1. Create Users (The Cast) ---
+  const usersToCreate = [
+    { uid: 'demo-client', email: 'client@demo.com', role: 'client', displayName: 'Demo Client' },
+    { uid: 'demo-startup', email: 'startup@demo.com', role: 'startup', displayName: 'Demo Startup' },
+    { uid: 'demo-scout', email: 'scout@demo.com', role: 'scout', displayName: 'Demo Scout' },
+  ];
+
+  for (const user of usersToCreate) {
+    try {
+      // Create auth user
+      await auth.createUser({
+        uid: user.uid,
+        email: user.email,
+        password: password,
+        displayName: user.displayName,
+        emailVerified: true,
+      });
+      console.log(`Successfully created auth user: ${user.email}`);
+
+      // Create corresponding Firestore document
+      const userDocRef = db.collection('users').doc(user.uid);
+      await userDocRef.set({
+        ownerId: user.uid,
+        role: user.role,
+        status: 'active',
+        gmv_total: 0,
+        // Add any other role-specific initial data here
+      });
+      console.log(`Successfully created Firestore user doc: ${user.uid}`);
+
+    } catch (error: any) {
+      if (error.code === 'auth/uid-already-exists' || error.code === 'auth/email-already-exists') {
+        console.log(`User ${user.email} already exists, skipping creation.`);
+      } else {
+        console.error(`Error creating user ${user.email}:`, error);
+      }
+    }
   }
-  console.log('50 mock challenges created.');
-};
 
-const createMockUsers = async () => {
-  const usersRef = db.collection('users');
-  for (let i = 0; i < 100; i++) {
-    const userId = faker.string.uuid();
-    const userRef = usersRef.doc(userId);
-    await userRef.set({
-      email: faker.internet.email(),
-      role: faker.helpers.arrayElement(['startup', 'scout']),
-      createdAt: admin.firestore.Timestamp.now(),
-    });
+  // --- 2. Create Challenges (The Scenarios) ---
+  const challenges = {
+    standard: {
+      id: 'challenge-standard',
+      title: 'Enterprise Chatbot Pilot',
+      description: 'We are looking for a next-generation chatbot to integrate into our enterprise customer support system. Must handle over 10,000 queries per day and support multiple languages.',
+      status: 'active',
+      is_stealth: false,
+      bounty: 25000,
+      tags: ['AI', 'NLP', 'Customer Support', 'Enterprise'],
+      ownerId: 'demo-client',
+    },
+    stealth: {
+      id: 'challenge-stealth',
+      title: 'Project Chimera',
+      description: 'Highly confidential project in the autonomous vehicle space. Details available upon NDA.',
+      status: 'active',
+      is_stealth: true,
+      bounty: 500000,
+      tags: ['Robotics', 'Autonomous Vehicles', 'Computer Vision'],
+      ownerId: 'demo-client',
+    },
+    ai_trigger: {
+      id: 'challenge-ai-trigger',
+      title: 'Unprocessed Raw Text',
+      description: "We have a massive logistics and supply chain operation. We're looking for a python backend developer to build a system that can optimize our routing and predict delivery times. Experience with machine learning is a plus.",
+      status: 'draft',
+      is_stealth: false,
+      bounty: 75000,
+      tags: [], // Intentionally left empty to be populated by the AI trigger
+      ownerId: 'demo-client',
+    }
+  };
+
+  for (const key in challenges) {
+    const challenge = challenges[key as keyof typeof challenges];
+    try {
+      await db.collection('challenges').doc(challenge.id).set(challenge);
+      console.log(`Successfully created challenge: "${challenge.title}"`);
+    } catch (error) {
+      console.error(`Error creating challenge "${challenge.title}":`, error);
+    }
   }
-  console.log('100 mock users created.');
-};
 
-const createMockLeads = async () => {
-  const leadsRef = db.collection('leads');
-  for (let i = 0; i < 10; i++) {
-    const leadId = faker.string.uuid();
-    const leadRef = leadsRef.doc(leadId);
-    await leadRef.set({
-      name: faker.person.fullName(),
-      email: faker.internet.email(),
-      claimed: false,
-      createdAt: admin.firestore.Timestamp.now(),
+  // --- 3. Create a Submission ---
+  try {
+    const submissionRef = db.collection('submissions').doc('submission-demo');
+    await submissionRef.set({
+      challengeId: 'challenge-standard',
+      startupId: 'demo-startup',
+      status: 'pending_review',
+      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      pitch: "Our revolutionary chatbot technology is the perfect fit for your enterprise needs."
     });
+    console.log('Successfully created a demo submission.');
+  } catch (error) {
+    console.error('Error creating submission:', error);
   }
-  console.log('10 mock leads created.');
-};
 
-const createMockShortLinks = async () => {
-  const shortLinksRef = db.collection('short_links');
-  for (let i = 0; i < 10; i++) {
-    const slug = faker.lorem.slug(1);
-    const shortLinkRef = shortLinksRef.doc(slug);
-    await shortLinkRef.set({
-      destinationUrl: faker.internet.url(),
-      createdAt: admin.firestore.Timestamp.now(),
-      creatorId: faker.string.uuid(),
-      clicks: faker.number.int({ min: 0, max: 100 }),
-    });
-  }
-  console.log('10 mock short links created.');
-};
 
-const seed = async () => {
-  console.log('Seeding local database...');
-  await createAdmin();
-  await createMockChallenges();
-  await createMockUsers();
-  await createMockLeads();
-  await createMockShortLinks();
-  console.log('Database seeding complete!');
-};
+  console.log('\n--- Seeding Complete! ---');
+  console.log(`
+  === DEMO CREDENTIALS ===
+  Client: client@demo.com
+  Startup: startup@demo.com
+  Scout: scout@demo.com
+  Password: ${password}
+  ========================
+  `);
+}
 
-seed().catch(console.error);
+seedDatabase().catch(console.error);

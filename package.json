@@ -16,10 +16,13 @@
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
     "test": "npm run test --workspaces",
-    "deploy": "firebase deploy"
+    "deploy": "firebase deploy",
+    "seed": "ts-node scripts/seed_local_db.ts"
   },
   "devDependencies": {
-    "typescript": "^5.5.3",
+    "firebase-admin": "^13.6.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
     "vite": "^5.4.1",
     "vitest": "^2.0.5"
   },
