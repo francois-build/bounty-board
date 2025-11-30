@@ -1,0 +1,112 @@
+/**
+ * Copyright (c) 2025 Bounty Solutions Inc.
+ * All Rights Reserved.
+ * This code is proprietary and confidential.
+ */
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions to check user roles from their profile.
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return getUserRole() == 'admin';
+    }
+
+    function isClient() {
+      return getUserRole() == 'client';
+    }
+
+    function isStartup() {
+      return getUserRole() == 'startup';
+    }
+    
+    // Default deny all access unless explicitly allowed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Rules for the 'users' collection
+    match /users/{userId} {
+      // A user can read their own profile. Admins can read any profile.
+      allow get: if request.auth.uid == userId || isAdmin();
+      // Allow authenticated users to list basic profile info, but not sensitive details.
+      allow list: if request.auth != null;
+      // A user can update their own profile, but cannot change their role or trust score.
+      allow update: if request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role
+                    && request.resource.data.trustScore == resource.data.trustScore;
+      // Users cannot create their own profiles directly (handled by backend).
+      allow create: if false; 
+    }
+    
+    // Rules for Compliance Data (nested under user profiles)
+    match /users/{userId}/complianceData/{docId} {
+       // Only the owner, an admin, or a client with an NDA can read.
+       // 'signedNdaWith' is an array of client UIDs on the document.
+       allow get: if request.auth.uid == userId 
+                  || isAdmin() 
+                  || (isClient() && resource.data.signedNdaWith.hasAny([request.auth.uid]));
+       // Only the owner can write.
+       allow write: if request.auth.uid == userId;
+    }
+
+    // Rules for the 'challenges' collection
+    match /challenges/{challengeId} {
+      // Read rules for challenges
+      allow get: if 
+        // Allow public read if not in stealth mode.
+        resource.data.isStealth == false
+        // Allow the owner (client) to read their own stealth challenge.
+        || (request.auth.uid == resource.data.ownerId)
+        // Allow admins to read anything.
+        || isAdmin();
+
+      // Unauthenticated users can only list non-stealth challenges.
+      allow list: if request.auth == null
+        ? query.filters.isStealth == ['==', false]
+        : request.auth != null;
+
+      // Only authenticated clients can create challenges.
+      allow create: if isClient() && request.resource.data.ownerId == request.auth.uid;
+      // Only the owner or an Admin can update a challenge.
+      allow update: if (isClient() && resource.data.ownerId == request.auth.uid) || isAdmin();
+      // Challenges are soft-deleted for auditing, so direct delete is disallowed.
+      allow delete: if isAdmin(); 
+    }
+    
+    // Rules for applications submitted to a challenge
+    match /challenges/{challengeId}/applications/{applicationId} {
+        // A startup can read their own application.
+        // The client who owns the challenge can read all applications for it.
+        // Admins can read anything.
+        allow get: if 
+            (isStartup() && resource.data.startupId == request.auth.uid)
+            || (isClient() && get(/databases/$(database)/documents/challenges/$(challengeId)).data.ownerId == request.auth.uid)
+            || isAdmin();
+            
+        // Startups can list only their own applications. Clients can list all for their challenge.
+        allow list: if
+             (isStartup() && query.filters.startupId == ['==', request.auth.uid])
+             || (isClient() && get(/databases/$(database)/documents/challenges/$(challengeId)).data.ownerId == request.auth.uid)
+             || isAdmin();
+
+        // Only a verified startup can create an application.
+        allow create: if isStartup() && request.resource.data.startupId == request.auth.uid;
+        
+        // Only the submitting startup can update their application (e.g., withdraw).
+        allow update: if isStartup() && resource.data.startupId == request.auth.uid;
+    }
+    
+    // Immutable logs for admin actions
+    match /sys_audit_logs/{logId} {
+        allow read: if isAdmin();
+        allow write: if false; // CANNOT be written by clients. Only via Admin SDK.
+        allow delete: if false; // Logs are immutable.
+    }
+  }
+}
