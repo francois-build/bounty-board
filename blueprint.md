@@ -1,75 +1,67 @@
-# Project Blueprint
+# Admin Panel Blueprint
 
 ## Overview
 
-This document outlines the architecture and implementation plan for the "Bounty Board" application. The goal is to create a dynamic and responsive marketplace for challenges, focusing on a fast, secure, and seamless user experience.
+This document outlines the structure and functionality of the admin panel for the application. The admin panel is a web-based interface that allows administrators to perform various administrative tasks. The panel is built with React and Firebase and provides a command menu for easy access to different actions.
 
-## Implemented Features
+## Features
 
-*   **Initial Project Setup:**
-    *   Configured a React-based web application.
-    *   Initialized Firebase for backend services.
-    *   Set up Cloud Functions for serverless logic.
-    *   Integrated Typesense for a fast search experience.
-*   **User Authentication:**
-    *   Implemented email/password and Google sign-in.
-    *   Created user profile management.
-    *   Role-based access control (RBAC) with "client," "startup," and "admin" roles.
-*   **Core Backend:**
-    *   Cloud Functions triggers for `onUserCreate`, `onChallengeWrite`.
-    *   Firestore security rules to protect data.
-    *   Secrets management for API keys (Resend, Typesense).
+The admin panel includes the following features:
 
-## Current Plan: Browse Challenges Marketplace
+*   **Manual Account Verification:** Admins can manually verify user and scout accounts.
+*   **User Impersonation:** Admins can generate a custom token to sign in as another user for debugging and support purposes.
+*   **Ledger Reconciliation:** Admins can manually mark milestones as funded to reconcile offline payments.
+*   **Bulk Lead Importer:** Admins can import leads from a CSV file into the Shadow Directory (`leads` collection).
 
-This plan details the creation of the 'Browse Challenges' page and associated functionality.
+## Project Structure
 
-### 1. Backend: `searchOrPivot` Cloud Function
+The admin panel is located in the `apps/admin` directory and has the following structure:
 
-*   **Objective:** Implement a Cloud Function to provide "synthetic liquidity." If a user's search returns few results, the function will pivot to a broader, skill-based search.
-*   **Logic:**
-    1.  Receive a search query from the client.
-    2.  Execute the primary search on the "challenges" collection in Typesense.
-    3.  If the result count is below a threshold (e.g., 5), extract relevant skills from the query.
-    4.  Perform a secondary search against the `tags` or `skills` field in the "challenges" collection.
-    5.  Return the combined or pivoted results.
-*   **File:** `functions/src/searchOrPivot.ts`
+```
+apps/admin/
+├── public/
+│   └── index.html
+├── src/
+│   ├── components/
+│   │   ├── BulkLeadImporter.tsx
+│   │   ├── ForceEscrowFunded.tsx
+│   │   ├── Impersonate.tsx
+│   │   └── ManualVerify.tsx
+│   ├── App.css
+│   ├── App.tsx
+│   ├── index.css
+│   └── main.tsx
+├── functions/
+│   └── index.ts
+├── package.json
+└── tsconfig.json
+```
 
-### 2. Frontend: 'Browse Challenges' Page
+*   **`public/`**: Contains the main HTML file for the admin panel.
+*   **`src/`**: Contains the React source code for the frontend.
+*   **`src/components/`**: Contains the individual React components for each admin action.
+*   **`functions/`**: Contains the backend Cloud Functions for the admin panel.
+*   **`package.json`**: Defines the project dependencies and scripts.
+*   **`tsconfig.json`**: Configures the TypeScript compiler.
 
-*   **Objective:** Create the main marketplace feed where users can browse, search, and filter challenges.
-*   **File:** `src/pages/BrowseChallenges.jsx`
+## Backend
 
-#### Key Features:
+The backend logic for the admin panel is implemented as a set of Cloud Functions in `functions/index.ts`. These functions are responsible for handling the administrative tasks securely.
 
-*   **Typesense Search:**
-    *   Integrate the `typesense-js` client SDK for all search operations.
-    *   **Constraint:** Do NOT query Firestore directly from the client for browsing challenges.
-    *   **Security:** All public searches will include the parameter `filter_by: 'isStealth:false'` to comply with Firestore security rules.
+### Cloud Functions
 
-*   **State Management with React Query:**
-    *   Use `react-query` to manage server state, caching, and data fetching.
-    *   **Optimistic UI:** When a user creates a new challenge, use `onMutate` to immediately add the challenge to the local query cache for a seamless experience.
+*   **`manualVerify`**: Verifies a user or scout account by updating their profile in Firestore.
+*   **`impersonate`**: Generates a custom token for a given user UID, allowing an admin to sign in as that user.
+*   **`forceEscrowFunded`**: Manually marks a milestone as funded in Firestore.
+*   **`importLeads`**: Bulk-imports leads from a CSV file into the `leads` collection in Firestore.
 
-*   **Infinite Scroll:**
-    *   Implement an infinite scroll mechanism using `react-query`'s `useInfiniteQuery` hook.
-    *   Fetch challenges in pages of 20.
-    *   Use an intersection observer to trigger fetching the next page when the user scrolls near the bottom.
+## Getting Started
 
-*   **Privacy-Aware Rendering:**
-    *   Check the user's authentication status.
-    *   If the user is not logged in or is unverified, display the challenge's `publicAlias` field.
-    *   If the user is logged in and verified, display the actual client name.
+To run the admin panel locally, you will need to have the Firebase CLI installed and configured. Once the CLI is set up, you can run the following commands:
 
-### 3. Routing
+```bash
+npm install
+npm run dev
+```
 
-*   Add a new route for the browse page.
-*   **File:** `src/App.jsx`
-*   **Route:** `/browse`
-
-### 4. Dependencies
-
-*   `react-query`: For server state management.
-*   `typesense-js`: For interacting with the Typesense search service.
-*   `react-router-dom`: For client-side routing.
-*   `react-intersection-observer`: To trigger infinite scroll.
+This will start the development server and you can access the admin panel at `http://localhost:5173`.

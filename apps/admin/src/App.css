@@ -1,0 +1,61 @@
+.placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.5rem;
+    color: #888;
+}
+
+main {
+    padding: 2rem;
+}
+
+[data-cmdk-root] {
+  width: 100%;
+  max-width: 640px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 5px 10px rgba(0, 0, 0, 0.04);
+}
+
+[data-cmdk-dialog] {
+    position: fixed;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 640px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 5px 10px rgba(0, 0, 0, 0.04);
+}
+
+[data-cmdk-input] {
+  width: 100%;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  outline: none;
+  border-bottom: 1px solid #eee;
+}
+
+[data-cmdk-list] {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+[data-cmdk-item] {
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+[data-cmdk-item]:hover {
+  background: #f5f5f5;
+}
+
+[data-cmdk-item][data-selected] {
+  background: #eee;
+}

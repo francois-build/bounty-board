@@ -2,22 +2,36 @@
   "emulators": {
     "auth": {
       "host": "127.0.0.1",
-      "port": 9100
+      "port": 9110
     },
     "firestore": {
       "host": "127.0.0.1",
-      "port": 8181
+      "port": 8190
     },
     "storage": {
       "host": "127.0.0.1",
-      "port": 9292
+      "port": 9290
     },
     "hosting": {
-        "host": "127.0.0.1",
-        "port": 5001
+      "host": "127.0.0.1",
+      "port": 5010
+    },
+    "functions": {
+      "host": "127.0.0.1",
+      "port": 5011
     },
     "ui": {
-      "enabled": true
+      "enabled": true,
+      "host": "127.0.0.1",
+      "port": 4001
+    },
+    "hub": {
+      "host": "127.0.0.1",
+      "port": 4410
+    },
+    "logging": {
+      "host": "127.0.0.1",
+      "port": 4510
     }
   },
   "functions": {
