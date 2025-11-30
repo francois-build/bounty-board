@@ -1,5 +1,5 @@
 {
-  "name": "@bridge/web",
+  "name": "@bounty-board/core",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "@bounty-board/shared": "*"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",

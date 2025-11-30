@@ -1,61 +1,59 @@
 {
-  "emulators": {
-    "auth": {
-      "host": "127.0.0.1",
-      "port": 9110
-    },
-    "firestore": {
-      "host": "127.0.0.1",
-      "port": 8190
-    },
-    "storage": {
-      "host": "127.0.0.1",
-      "port": 9290
-    },
-    "hosting": {
-      "host": "127.0.0.1",
-      "port": 5010
-    },
-    "functions": {
-      "host": "127.0.0.1",
-      "port": 5011
-    },
-    "ui": {
-      "enabled": true,
-      "host": "127.0.0.1",
-      "port": 4001
-    },
-    "hub": {
-      "host": "127.0.0.1",
-      "port": 4410
-    },
-    "logging": {
-      "host": "127.0.0.1",
-      "port": 4510
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.log.*"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
     }
-  },
-  "functions": {
-    "predeploy": [
-      "npm --prefix \"$RESOURCE_DIR\" run lint",
-      "npm --prefix \"$RESOURCE_DIR\" run build"
-    ],
-    "source": "functions"
-  },
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "**",
-        "function": "app"
-      }
-    ]
-  },
+  ],
+  "hosting": [
+    {
+      "target": "core",
+      "public": "apps/core/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    },
+    {
+      "target": "link",
+      "public": "apps/link/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    },
+    {
+      "target": "www",
+      "public": "apps/www/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    }
+  ],
   "storage": {
     "rules": "storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
   }
 }

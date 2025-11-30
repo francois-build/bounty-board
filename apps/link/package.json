@@ -1,5 +1,5 @@
 {
-  "name": "rfp-parser",
+  "name": "@bounty-board/link",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,7 +14,8 @@
     "react-dom": "^18.2.0",
     "axios": "^1.6.0",
     "@tanstack/react-query": "^5.0.0",
-    "react-google-recaptcha-v3": "^1.10.1"
+    "react-google-recaptcha-v3": "^1.10.1",
+    "@bounty-board/shared": "*"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",

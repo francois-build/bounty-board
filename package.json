@@ -1,56 +1,28 @@
 {
-  "name": "myapp",
+  "name": "bounty-board-monorepo",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "dev:admin": "cd apps/admin && npm run dev",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest --run",
-    "test:emulator": "firebase emulators:exec \"vitest run\"",
-    "seed": "vite-node scripts/seed_local_db.ts"
-  },
-  "dependencies": {
-    "@tanstack/react-query": "^5.90.11",
-    "bcrypt": "^6.0.0",
-    "lucide-react": "^0.555.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "react-dropzone": "^14.3.8",
-    "react-error-boundary": "^6.0.0",
-    "react-intersection-observer": "^10.0.0",
-    "react-router-dom": "^7.9.6",
-    "zod": "^4.1.13"
+    "dev:core": "npm run dev --workspace=@bounty-board/core",
+    "dev:link": "npm run dev --workspace=@bounty-board/link",
+    "dev:www": "npm run dev --workspace=@bounty-board/www",
+    "dev:all": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces",
+    "deploy": "firebase deploy"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "@faker-js/faker": "^9.9.0",
-    "@firebase/rules-unit-testing": "^4.0.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@types/bcrypt": "^6.0.0",
-    "@types/node": "^24.10.0",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "@vitejs/plugin-react": "^5.1.0",
-    "eslint": "^9.39.1",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "eslint-plugin-react-refresh": "^0.4.24",
-    "firebase-functions-test": "^3.4.1",
-    "firebase-tools": "^13.14.2",
-    "globals": "^16.5.0",
-    "jsdom": "^27.0.1",
-    "mocha": "^11.7.5",
-    "sinon": "^21.0.0",
-    "tailwindcss": "^4.1.17",
-    "tailwindcss-animate": "^1.0.7",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.3",
-    "vite": "^7.2.2",
-    "vite-node": "^1.6.1",
-    "vitest": "^4.0.14"
+    "typescript": "^5.5.3",
+    "vite": "^5.4.1",
+    "vitest": "^2.0.5"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
