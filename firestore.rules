@@ -12,6 +12,10 @@ service cloud.firestore {
     function getUserRole() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
+    
+    function getChallengeOwner(challengeId) {
+        return get(/databases/$(database)/documents/challenges/$(challengeId)).data.ownerId;
+    }
 
     function isAdmin() {
       return getUserRole() == 'admin';
@@ -93,20 +97,32 @@ service cloud.firestore {
         // Admins can read anything.
         allow get: if 
             (isStartup() && resource.data.startupId == request.auth.uid)
-            || (isClient() && get(/databases/$(database)/documents/challenges/$(challengeId)).data.ownerId == request.auth.uid)
+            || (isClient() && getChallengeOwner(challengeId) == request.auth.uid)
             || isAdmin();
             
         // Startups can list only their own applications. Clients can list all for their challenge.
         allow list: if
              (isStartup() && query.filters.startupId == ['==', request.auth.uid])
-             || (isClient() && get(/databases/$(database)/documents/challenges/$(challengeId)).data.ownerId == request.auth.uid)
+             || (isClient() && getChallengeOwner(challengeId) == request.auth.uid)
              || isAdmin();
 
         // Only a verified startup can create an application.
-        allow create: if isStartup() && request.resource.data.startupId == request.auth.uid;
+        // The applicationId MUST be the startup's UID to prevent multiple applications.
+        allow create: if isStartup() 
+                      && request.resource.data.startupId == request.auth.uid
+                      && applicationId == request.auth.uid;
         
         // Only the submitting startup can update their application (e.g., withdraw).
         allow update: if isStartup() && resource.data.startupId == request.auth.uid;
+    }
+
+    // Rules for challenge milestones
+    match /challenges/{challengeId}/milestones/{milestoneId} {
+        // Only the client who owns the challenge or an admin can read milestones.
+        allow get: if (isClient() && getChallengeOwner(challengeId) == request.auth.uid) || isAdmin();
+        
+        // Only the challenge owner (client) can create or update milestones.
+        allow write: if isClient() && getChallengeOwner(challengeId) == request.auth.uid;
     }
     
     // Immutable logs for admin actions
