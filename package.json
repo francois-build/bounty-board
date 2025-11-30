@@ -11,6 +11,7 @@
     "dev:core": "npm run dev --workspace=@bounty-board/core",
     "dev:link": "npm run dev --workspace=@bounty-board/link",
     "dev:www": "npm run dev --workspace=@bounty-board/www",
+    "dev:admin": "npm run dev --workspace=@bounty-board/admin",
     "dev:all": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",

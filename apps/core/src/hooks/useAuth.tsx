@@ -1,14 +1,50 @@
-import { createContext, useContext, useState } from 'react';
-import { User } from '@bounty-board/shared/schemas';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User as AuthUser } from 'firebase/auth';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { User as UserProfile } from '@bounty-board/shared/schemas';
 
-const AuthContext = createContext<{ user: User | null; setUser: (user: User | null) => void; }>({ user: null, setUser: () => {} });
+interface AuthContextType {
+  user: AuthUser | null;
+  profile: UserProfile | null;
+  loading: boolean;
+}
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState<User | null>({ id: '1', role: 'admin', status: 'verified', gmv_total: 0, ownerId: '1' }); // Hardcoded user
+const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
+      setUser(authUser);
+      if (authUser) {
+        const userDocRef = doc(db, `users/${authUser.uid}`);
+        const unsubProfile = onSnapshot(userDocRef, (doc) => {
+          if (doc.exists()) {
+            setProfile(doc.data() as UserProfile);
+          } else {
+            setProfile(null);
+          }
+          setLoading(false);
+        });
+        return () => unsubProfile();
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const value = { user, profile, loading };
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

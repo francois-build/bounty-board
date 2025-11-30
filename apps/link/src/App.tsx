@@ -1,93 +1,70 @@
-import React, { useState, useCallback } from 'react';
-import axios from 'axios';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
-import './index.css';
 
-// Mock data for the teaser
-const mockAnalysis = {
-    title: "Project: Cloud-Native RFP",
-    budget: "$2,500,000 USD",
-    matchScore: 92,
-    summary: "This project requires a comprehensive cloud migration strategy and a full-stack development team to build a new SaaS platform...",
-    sections: [
-        { title: "Executive Summary", content: "A high-level overview of the project goals, scope, and expected outcomes." },
-        { title: "Technical Requirements", content: "Detailed specifications for the required technology stack, including infrastructure, security, and scalability." },
-        { title: "Vendor Qualifications", content: "The criteria by which potential vendors will be evaluated, including experience and certifications." },
-    ]
-};
+import React, { useState, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import './index.css'; // Assuming you have some basic styling
 
 function App() {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const [analysis, setAnalysis] = useState<typeof mockAnalysis | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const { executeRecaptcha } = useGoogleReCaptcha();
+    const [extractedText, setExtractedText] = useState<string | null>(null);
+    const [fileName, setFileName] = useState<string | null>(null);
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            setSelectedFile(event.target.files[0]);
+    const onDrop = useCallback((acceptedFiles: File[]) => {
+        const file = acceptedFiles[0];
+        if (file && file.type === 'application/pdf') {
+            setFileName(file.name);
+            // Mock logic for reading file text
+            const mockExtractedBounties = `
+              Bounty: Create a new logo - $500
+              Bounty: Develop a landing page - $1,500
+              Bounty: Set up a CI/CD pipeline - $2,000
+            `;
+            setExtractedText(mockExtractedBounties);
+        } else {
+            alert("Please drop a PDF file.");
         }
+    }, []);
+
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ 
+        onDrop, 
+        accept: {
+            'application/pdf': ['.pdf'],
+        }
+    });
+
+    const handlePostToBountyBoard = () => {
+        // Redirect to onboarding with URL params
+        const coreAppUrl = 'https://<YOUR_WEB_APP_URL>/onboarding';
+        const params = new URLSearchParams({
+            source: 'rfp-parser',
+            fileName: fileName || '',
+            extractedBounties: extractedText || '',
+        });
+        window.location.href = `${coreAppUrl}?${params.toString()}`;
     };
-
-    const handleUpload = useCallback(async () => {
-        if (!selectedFile || !executeRecaptcha) return;
-
-        setIsLoading(true);
-        setAnalysis(null);
-
-        const token = await executeRecaptcha('upload');
-
-        const formData = new FormData();
-        formData.append('pdf', selectedFile);
-        formData.append('recaptchaToken', token);
-
-        try {
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-            setAnalysis(mockAnalysis);
-        } catch (error) {
-            console.error("Error uploading file:", error);
-            alert("Analysis failed. Please try again.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [executeRecaptcha, selectedFile]);
 
     return (
         <div className="container">
-            <header>
-                <h1>Unlock RFP Insights</h1>
-                <p>Our AI-powered tool instantly analyzes your RFP documents to reveal key requirements and opportunities.</p>
-            </header>
-
-            <div className="upload-section">
-                <input type="file" accept=".pdf" onChange={handleFileChange} />
-                <button onClick={handleUpload} disabled={!selectedFile || isLoading}>
-                    {isLoading ? 'Analyzing Document...' : 'Analyze RFP'}
-                </button>
-            </div>
-
-            {analysis && (
-                <div className="results-section">
-                    <div className="teaser">
-                        <h3>{analysis.title}</h3>
-                        <p><strong>Budget:</strong> {analysis.budget}</p>
-                        <p><strong>Match Score:</strong> {analysis.matchScore}%</p>
-                        <p>{analysis.summary}</p>
-                    </div>
-                    <div className="details-blur">
-                        {analysis.sections.map((section, index) => (
-                            <div key={index}>
-                                <h4>{section.title}</h4>
-                                <p>{section.content}</p>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="cta-overlay">
-                        <h3>See the Full Picture</h3>
-                        <p>Your free account unlocks a detailed analysis, including deadlines, stakeholder contacts, and a complete technical requirements breakdown.</p>
-                        <a href="https://<YOUR_WEB_APP_URL>/signup" className="signup-button">Unlock Full Analysis</a>
-                    </div>
+            <div className="card">
+                <h1>RFP Bounty Extractor</h1>
+                <p>Drop an RFP PDF here to extract potential bounties.</p>
+                
+                <div {...getRootProps()} className={`dropzone ${isDragActive ? 'active' : ''}`}>
+                    <input {...getInputProps()} />
+                    {isDragActive ?
+                        <p>Drop the file here ...</p> :
+                        <p>Drag 'n' drop a PDF here, or click to select a file</p>
+                    }
                 </div>
-            )}
+
+                {extractedText && (
+                    <div className="preview">
+                        <h3>Extracted Bounties (Preview)</h3>
+                        <pre>{extractedText}</pre>
+                        <button onClick={handlePostToBountyBoard} className="cta-button">
+                            Post to Bounty Board
+                        </button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
