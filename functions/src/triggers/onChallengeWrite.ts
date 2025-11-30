@@ -11,22 +11,21 @@ const typesenseApiKey = defineSecret("TYPESENSE_API_KEY");
 // TYPESENSE_PORT=443
 // TYPESENSE_PROTOCOL=https
 
-
-// Initialize Typesense client
-const typesense = new Client({
-  nodes: [
-    {
-      host: process.env.TYPESENSE_HOST as string,
-      port: Number(process.env.TYPESENSE_PORT as string),
-      protocol: process.env.TYPESENSE_PROTOCOL as string,
-    },
-  ],
-  apiKey: typesenseApiKey.value(),
-});
-
 export const onChallengeWrite = functions.runWith({ secrets: [typesenseApiKey] }).firestore
   .document("challenges/{challengeId}")
   .onWrite(async (change, context) => {
+    // Initialize Typesense client inside the function
+    const typesense = new Client({
+      nodes: [
+        {
+          host: process.env.TYPESENSE_HOST as string,
+          port: Number(process.env.TYPESENSE_PORT as string),
+          protocol: process.env.TYPESENSE_PROTOCOL as string,
+        },
+      ],
+      apiKey: typesenseApiKey.value(),
+    });
+
     const challengeId = context.params.challengeId;
 
     // Handle document deletion

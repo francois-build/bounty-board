@@ -3,7 +3,7 @@ import { vi, describe, it, expect, afterAll, afterEach } from 'vitest';
 import fft from 'firebase-functions-test';
 
 // Mock dependencies
-const firestoreData: { [key: string]: any } = {};
+const firestoreData: { [key: string]: Record<string, unknown> } = {};
 
 vi.mock('firebase-admin', () => ({
   initializeApp: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('firebase-admin', () => ({
             exists: !!firestoreData[path],
             data: () => firestoreData[path],
           })),
-          set: vi.fn().mockImplementation(async (data: any, options: any) => {
+          set: vi.fn().mockImplementation(async (data: Record<string, unknown>, options?: { merge: boolean }) => {
             if (options && options.merge) {
               firestoreData[path] = { ...(firestoreData[path] || {}), ...data };
             } else {
@@ -99,7 +99,7 @@ describe('sendScoutInvite', () => {
       }
 
       const finalState = firestoreData['scoutInvites/scout4'];
-      expect(finalState.timestamps).toHaveLength(10);
+      expect((finalState as { timestamps: unknown[] }).timestamps).toHaveLength(10);
       
       await expect(wrapped(data)).rejects.toThrow('Rate limit exceeded');
   });

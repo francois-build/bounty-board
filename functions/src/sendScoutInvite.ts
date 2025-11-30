@@ -7,7 +7,7 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
-export const sendScoutInvite = functions.https.onCall(async (data, context) => {
+export const sendScoutInvite = functions.https.onCall(async (data) => {
   const { email, scoutId } = data;
 
   // Spam Attack Check

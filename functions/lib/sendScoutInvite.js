@@ -35,27 +35,35 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendScoutInvite = void 0;
 const functions = __importStar(require("firebase-functions"));
-const resend_1 = require("resend");
-const params_1 = require("firebase-functions/params");
-// Define the Resend API key as a secret
-const resendApiKey = (0, params_1.defineSecret)('RESEND_API_KEY');
-exports.sendScoutInvite = functions
-    .runWith({ secrets: [resendApiKey] })
-    .https.onCall(async (data, context) => {
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to send a scout invite.');
+const admin = __importStar(require("firebase-admin"));
+const bcrypt = __importStar(require("bcrypt"));
+admin.initializeApp();
+const db = admin.firestore();
+exports.sendScoutInvite = functions.https.onCall(async (data) => {
+    var _a;
+    const { email, scoutId } = data;
+    // Spam Attack Check
+    const now = Date.now();
+    const inviteRef = db.collection('scoutInvites').doc(scoutId);
+    const inviteDoc = await inviteRef.get();
+    const timestamps = inviteDoc.exists ? ((_a = inviteDoc.data()) === null || _a === void 0 ? void 0 : _a.timestamps) || [] : [];
+    const requestsInLastMinute = timestamps.filter((ts) => now - ts < 60000).length;
+    if (requestsInLastMinute >= 10) {
+        throw new functions.https.HttpsError('resource-exhausted', 'Rate limit exceeded');
     }
-    const { email, name } = data;
-    const { uid } = context.auth.token;
-    // Initialize Resend client with the secret API key
-    const resend = new resend_1.Resend(resendApiKey.value());
-    // Send email using Resend
-    await resend.emails.send({
-        from: 'onboarding@resend.dev',
-        to: email,
-        subject: `You've been invited by ${name} to join our app!`,
-        html: `Click here to join: <a href="https://yourapp.com/invite?ref=${uid}">Join Now</a>`,
-    });
+    await inviteRef.set({ timestamps: [...timestamps, now] }, { merge: true });
+    // Suppression Bypass Check
+    const hashedEmail = await bcrypt.hash(email, 10);
+    const suppressionDoc = await db.collection('suppressions').doc(hashedEmail).get();
+    if (suppressionDoc.exists) {
+        return { success: true };
+    }
+    // Enumeration Attack Check
+    const user = await admin.auth().getUserByEmail(email).catch(() => null);
+    if (user) {
+        return { success: true };
+    }
+    // TODO: Implement actual email sending logic here
     return { success: true };
 });
 //# sourceMappingURL=sendScoutInvite.js.map

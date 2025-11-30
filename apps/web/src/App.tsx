@@ -7,6 +7,7 @@ import SwitchWorkspace from './components/layout/SwitchWorkspace';
 import NotificationBell from './components/layout/NotificationBell';
 import { AuthProvider } from './hooks/useAuth';
 import Onboarding from './pages/onboarding/Onboarding';
+import CreateChallengeWizard from './pages/onboarding/CreateChallengeWizard';
 
 const App = () => (
   <AuthProvider>
@@ -17,12 +18,14 @@ const App = () => (
           <NotificationBell />
           <Link to="/inbox">Inbox</Link>
           <Link to="/onboarding">Onboarding</Link>
+          <Link to="/create-challenge">Create Challenge</Link> 
         </div>
         <SwitchWorkspace />
       </div>
       <Routes>
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/create-challenge" element={<CreateChallengeWizard />} />
       </Routes>
     </Router>
   </AuthProvider>
