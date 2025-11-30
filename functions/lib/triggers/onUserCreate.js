@@ -1,50 +1,98 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onUserCreate = void 0;
-const functions = __importStar(require("firebase-functions"));
-const search_1 = require("../utils/search");
-exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
-    const { uid, email, displayName, photoURL } = user;
-    const userObject = {
-        objectID: uid,
-        email,
-        displayName,
-        photoURL,
-    };
-    const index = search_1.search.initIndex('users');
-    await index.saveObject(userObject);
+exports.onusercreate = void 0;
+const logger = require("firebase-functions/logger");
+const functions_1 = require("firebase-auth/functions");
+const firestore_1 = require("firebase-admin/firestore");
+const app_1 = require("firebase-admin/app");
+if ((0, app_1.getApps)().length === 0) {
+    (0, app_1.initializeApp)();
+}
+const db = (0, firestore_1.getFirestore)();
+exports.onusercreate = (0, functions_1.onUserCreated)(async (event) => {
+    const { uid, email, customClaims } = event.data;
+    logger.info(`New user created: ${uid} with email: ${email}`);
+    const userRef = db.collection("users").doc(uid);
+    try {
+        const userDoc = await userRef.get();
+        if (userDoc.exists) {
+            logger.warn(`User document for ${uid} already exists. Exiting.`);
+            return;
+        }
+        let newUser;
+        let auditMessage = "";
+        const inviteCode = customClaims === null || customClaims === void 0 ? void 0 : customClaims.inviteCode;
+        let referredBy = null;
+        if (inviteCode) {
+            const inviteQuery = db.collection('sys_invites').where('code', '==', inviteCode).limit(1);
+            const inviteSnapshot = await inviteQuery.get();
+            if (!inviteSnapshot.empty) {
+                const inviteData = inviteSnapshot.docs[0].data();
+                referredBy = inviteData.scoutId;
+                logger.info(`User ${uid} was referred by scout ${referredBy} using code ${inviteCode}`);
+                const scoutRef = db.collection('users').doc(referredBy);
+                await scoutRef.update({ referralCount: firestore_1.FieldValue.increment(1) });
+                const referralAuditLog = {
+                    timestamp: Date.now(),
+                    level: 'info',
+                    message: `Successful referral attribution: New user ${uid} referred by scout ${referredBy}.`,
+                    context: { newUserId: uid, scoutId: referredBy, inviteCode },
+                };
+                await db.collection("sys_audit_logs").add(referralAuditLog);
+            }
+        }
+        if (email) {
+            const leadsQuery = db.collection("leads").where("email", "==", email).limit(1);
+            const leadsSnapshot = await leadsQuery.get();
+            if (!leadsSnapshot.empty) {
+                const leadDoc = leadsSnapshot.docs[0];
+                const leadData = leadDoc.data();
+                newUser = Object.assign(Object.assign({}, leadData), { status: 'verified', ownerId: uid, referredBy });
+                await leadDoc.ref.update({ claimed: true });
+                auditMessage = `User ${uid} claimed from lead ${leadDoc.id}.`;
+                logger.info(auditMessage);
+            }
+            else {
+                newUser = {
+                    role: 'unknown',
+                    status: 'probationary',
+                    gmv_total: 0,
+                    ownerId: uid,
+                    referredBy,
+                };
+                auditMessage = `New probationary user ${uid} created.`;
+                logger.info(auditMessage);
+            }
+        }
+        else {
+            newUser = {
+                role: 'unknown',
+                status: 'probationary',
+                gmv_total: 0,
+                ownerId: uid,
+                referredBy,
+            };
+            auditMessage = `New probationary user ${uid} created without email.`;
+            logger.warn(auditMessage);
+        }
+        await userRef.set(newUser);
+        const auditLog = {
+            timestamp: Date.now(),
+            level: "info",
+            message: auditMessage,
+            context: { userId: uid, email },
+        };
+        await db.collection("sys_audit_logs").add(auditLog);
+    }
+    catch (error) {
+        logger.error("Error in onUserCreate trigger:", error);
+        const errorAuditLog = {
+            timestamp: Date.now(),
+            level: "error",
+            message: "Failed to process new user creation.",
+            context: { userId: uid, email, error: error instanceof Error ? error.message : String(error) },
+        };
+        await db.collection("sys_audit_logs").add(errorAuditLog);
+    }
 });
 //# sourceMappingURL=onUserCreate.js.map

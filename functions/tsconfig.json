@@ -1,15 +1,18 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
     "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
     "skipLibCheck": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node"
+    "baseUrl": ".",
+    "paths": {
+      "@/shared/*": ["../packages/shared/src/*"]
+    }
   },
   "compileOnSave": true,
   "include": [
