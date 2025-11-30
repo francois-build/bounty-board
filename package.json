@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest --run",
-    "test:emulator": "firebase emulators:exec \"vitest --run\""
+    "test:emulator": "firebase emulators:exec \"vitest --run\"",
+    "seed": "vite-node scripts/seed_local_db.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -17,8 +18,9 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.0",
     "@eslint/js": "^9.39.1",
+    "@faker-js/faker": "^9.9.0",
+    "@firebase/rules-unit-testing": "^4.0.0",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
@@ -32,6 +34,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
     "vite": "^7.2.2",
+    "vite-node": "^1.6.1",
     "vitest": "^4.0.14"
   }
 }

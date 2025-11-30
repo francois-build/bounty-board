@@ -2,6 +2,20 @@
   "firestore": {
     "rules": "firestore.rules"
   },
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "function": "resolveShortLink"
+      }
+    ]
+  },
   "emulators": {
     "firestore": {
       "port": 8080

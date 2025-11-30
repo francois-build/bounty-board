@@ -24,6 +24,13 @@ service cloud.firestore {
     function isStartup() {
       return getUserRole() == 'startup';
     }
+
+    // Rules for the 'short_links' collection
+    match /short_links/{linkId} {
+      allow read: if false; // Reading is done via Admin SDK in the cloud function.
+      allow create: if request.auth != null;
+      allow update, delete: if false; // Links are immutable.
+    }
     
     // Default deny all access unless explicitly allowed.
     match /{document=**} {
