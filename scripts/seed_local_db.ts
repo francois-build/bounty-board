@@ -5,7 +5,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { faker } from '@faker-js/faker';
 
 admin.initializeApp({
-  projectId: 'demo-test',
+  projectId: 'bridge-by-mosaic',
 });
 
 const db = getFirestore();

@@ -1,47 +1,75 @@
-# Blueprint: Authentication & User Creation
-
-This document outlines the plan for implementing the authentication and user creation logic for the application.
+# Project Blueprint
 
 ## Overview
 
-The goal is to provide a secure and seamless authentication experience for users, supporting multiple social login providers. The system will also handle user creation and invitations.
+This document outlines the architecture and implementation plan for the "Bounty Board" application. The goal is to create a dynamic and responsive marketplace for challenges, focusing on a fast, secure, and seamless user experience.
 
-## Plan
+## Implemented Features
 
-### 1. Interactive Configuration
+*   **Initial Project Setup:**
+    *   Configured a React-based web application.
+    *   Initialized Firebase for backend services.
+    *   Set up Cloud Functions for serverless logic.
+    *   Integrated Typesense for a fast search experience.
+*   **User Authentication:**
+    *   Implemented email/password and Google sign-in.
+    *   Created user profile management.
+    *   Role-based access control (RBAC) with "client," "startup," and "admin" roles.
+*   **Core Backend:**
+    *   Cloud Functions triggers for `onUserCreate`, `onChallengeWrite`.
+    *   Firestore security rules to protect data.
+    *   Secrets management for API keys (Resend, Typesense).
 
-*   [ ] **Action:** Prompt the user for OAuth Client IDs and Secrets for Google, LinkedIn, and Microsoft.
-*   [ ] **Action:** Explain how to configure the Callback URLs in the Firebase Console.
+## Current Plan: Browse Challenges Marketplace
 
-### 2. Frontend (apps/web)
+This plan details the creation of the 'Browse Challenges' page and associated functionality.
 
-*   [ ] **Component:** Create a `LoginPage` component to display the social login buttons.
-*   [ ] **Routing:** Add a `/login` route for the `LoginPage`.
-*   [ ] **Providers:**
-    *   [ ] Integrate Firebase Authentication with the Google provider.
-    *   [ ] Integrate Firebase Authentication with the LinkedIn (OIDC) provider.
-    *   [ ] Integrate Firebase Authentication with the Microsoft (SSO) provider.
-*   [ ] **UI:**
-    *   [ ] Create a loading/polling state after login to wait for the user profile to be created by the `onUserCreate` function.
-    *   [ ] Create an "Invalid Link" page for expired or invalid magic links.
-    *   [ ] Add a "Resend Invite" button to the "Invalid Link" page.
+### 1. Backend: `searchOrPivot` Cloud Function
 
-### 3. Backend (Cloud Functions)
+*   **Objective:** Implement a Cloud Function to provide "synthetic liquidity." If a user's search returns few results, the function will pivot to a broader, skill-based search.
+*   **Logic:**
+    1.  Receive a search query from the client.
+    2.  Execute the primary search on the "challenges" collection in Typesense.
+    3.  If the result count is below a threshold (e.g., 5), extract relevant skills from the query.
+    4.  Perform a secondary search against the `tags` or `skills` field in the "challenges" collection.
+    5.  Return the combined or pivoted results.
+*   **File:** `functions/src/searchOrPivot.ts`
 
-*   [ ] **Function:** Implement the `onUserCreate` Cloud Function (`functions/src/triggers/onUserCreate.ts`).
-    *   [ ] Create a new user document in the `users` collection in Firestore.
-    *   [ ] Check the `leads` collection for a matching email and claim the shadow profile.
-    *   [ ] Set the `probationaryStatus` field to `true`.
-    *   [ ] Assign a default avatar URL.
-*   [ ] **Function:** Implement the `sendScoutInvite` callable Cloud Function (`functions/src/triggers/sendScoutInvite.ts`).
-    *   [ ] Verify that the caller is a registered "Scout" by checking their custom claims.
-    *   [ ] Implement a suppression check to avoid sending emails to users who have opted out.
-    *   [ ] Use the `resend` library to send the invitation email.
-    *   [ ] Set the `Reply-To` header of the email to the Scout's verified email address.
+### 2. Frontend: 'Browse Challenges' Page
 
-### 4. Error Handling
+*   **Objective:** Create the main marketplace feed where users can browse, search, and filter challenges.
+*   **File:** `src/pages/BrowseChallenges.jsx`
 
-*   [ ] **UI:** Create a dedicated "Invalid Link" page.
-*   [ ] **Logic:** If a Magic Link token is expired or invalid, redirect the user to the "Invalid Link" page.
-*   [ ] **Functionality:** The "Resend Invite" button should trigger a function to send a new invitation.
+#### Key Features:
 
+*   **Typesense Search:**
+    *   Integrate the `typesense-js` client SDK for all search operations.
+    *   **Constraint:** Do NOT query Firestore directly from the client for browsing challenges.
+    *   **Security:** All public searches will include the parameter `filter_by: 'isStealth:false'` to comply with Firestore security rules.
+
+*   **State Management with React Query:**
+    *   Use `react-query` to manage server state, caching, and data fetching.
+    *   **Optimistic UI:** When a user creates a new challenge, use `onMutate` to immediately add the challenge to the local query cache for a seamless experience.
+
+*   **Infinite Scroll:**
+    *   Implement an infinite scroll mechanism using `react-query`'s `useInfiniteQuery` hook.
+    *   Fetch challenges in pages of 20.
+    *   Use an intersection observer to trigger fetching the next page when the user scrolls near the bottom.
+
+*   **Privacy-Aware Rendering:**
+    *   Check the user's authentication status.
+    *   If the user is not logged in or is unverified, display the challenge's `publicAlias` field.
+    *   If the user is logged in and verified, display the actual client name.
+
+### 3. Routing
+
+*   Add a new route for the browse page.
+*   **File:** `src/App.jsx`
+*   **Route:** `/browse`
+
+### 4. Dependencies
+
+*   `react-query`: For server state management.
+*   `typesense-js`: For interacting with the Typesense search service.
+*   `react-router-dom`: For client-side routing.
+*   `react-intersection-observer`: To trigger infinite scroll.

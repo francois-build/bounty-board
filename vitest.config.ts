@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    setupFiles: './firestore.test.ts',
+    include: ['**/*.test.ts'], // Explicitly include all test files
     testTimeout: 10000, // For slower emulator startups
     // To prevent conflicts with the running app
     port: 5174, 

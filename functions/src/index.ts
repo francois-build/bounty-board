@@ -9,3 +9,4 @@ export { sendScoutInvite } from './triggers/sendScoutInvite';
 export { onMilestoneRelease } from './triggers/onMilestoneRelease';
 export { resolveShortLink } from './triggers/resolveShortLink';
 export { onChallengeWrite } from './triggers/onChallengeWrite';
+export { searchOrPivot } from './searchOrPivot';
