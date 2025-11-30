@@ -7,6 +7,7 @@
   packages = [
     pkgs.nodejs_20
     pkgs.jdk
+    pkgs.firebase-cli
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -20,10 +21,17 @@
       # Runs when a workspace is first created with this `dev.nix` file
       onCreate = {
         npm-install = "npm i --no-audit --no-progress --timing";
+        emulator-install = "firebase emulators:install";
         # Open editors for the following files by default, if they exist:
         default.openFiles = [ "src/App.tsx" "src/App.ts" "src/App.jsx" "src/App.js" ];
       };
       # To run something each time the workspace is (re)started, use the `onStart` hook
+      onStart = {
+        # The following script will run the Firebase emulators and the Vite dev server
+        # in the background. You can view the logs for these services in the "Processes"
+        # panel in the left-hand sidebar.
+        start-emulators-and-dev = "(firebase emulators:start --project=demo-test &) && npm run dev -- --port $PORT --host 0.0.0.0";
+      };
     };
     # Enable previews and customize configuration
     previews = {

@@ -1,18 +1,17 @@
 
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, doc, setDoc, Timestamp } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, Timestamp, connectFirestoreEmulator } from "firebase/firestore";
 import { faker } from "@faker-js/faker";
 
 // Initialize Firebase
 const firebaseConfig = {
   projectId: "demo-test",
-  databaseURL: "http://127.0.0.1:8080",
   // For local emulator, we don't need real auth credentials
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-db.settings = { host: "127.0.0.1:8080", ssl: false };
+connectFirestoreEmulator(db, '127.0.0.1', 8080);
 
 const createAdmin = async () => {
   const adminEmail = "admin@bridge.com";
@@ -44,7 +43,7 @@ const createMockChallenges = async () => {
 
 const createMockUsers = async () => {
   const usersRef = collection(db, "users");
-  for (let i = 0; i < 100; i++) {
+  for (let i = a; i < 100; i++) {
     const userId = faker.string.uuid();
     const userRef = doc(usersRef, userId);
     await setDoc(userRef, {

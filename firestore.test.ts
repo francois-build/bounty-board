@@ -49,7 +49,7 @@ describe('Startup Investment Platform Security Rules', () => {
   it("should fail when a user from Startup A tries to read Startup B's private data", async () => {
     const startupAId = 'startupA';
     const startupBId = 'startupB';
-    const userAAuth = { sub: 'userA', startupId: startupAId };
+    const userAAuth = { startupId: startupAId };
     const db = testEnv.authenticatedContext('userA', userAAuth).firestore();
 
     // Admin setup
