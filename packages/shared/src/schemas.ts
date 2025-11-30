@@ -19,6 +19,7 @@ export const ChallengeInputSchema = z.object({
   budgetRange: z.enum(['<50k', '50k-250k', '250k+']),
   isStealth: z.boolean(),
   isBuildEvent: z.boolean().default(false), // Bridge: Build Flag
+  buildEventCategory: z.string().optional(),
   publicAlias: z.string().max(50).optional(), // Field-Level Masking
   citationSnippet: z.string().optional(), // For Digital Twin grounding
 });
@@ -37,6 +38,8 @@ export const ChallengeSchema = z.strictObject({
     status: z.enum(['draft', 'active', 'review', 'awarded']),
     is_stealth: z.boolean(),
     ownerId: z.string(),
+    isBuildEvent: z.boolean().optional().default(false),
+    buildEventCategory: z.string().optional(),
 });
 
 export const SubmissionSchema = z.strictObject({
