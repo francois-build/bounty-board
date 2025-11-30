@@ -1,55 +1,53 @@
 
 import * as functions from "firebase-functions";
-import { Client } from "typesense";
-import { defineSecret } from "firebase-functions/params";
+import { getFirestore } from "firebase-admin/firestore";
+import { extractChallengeMetadata } from "../lib/ai";
+import * as logger from "firebase-functions/logger";
 
-// Define secrets for Typesense
-const typesenseApiKey = defineSecret("TYPESENSE_API_KEY");
+const db = getFirestore();
 
-// It is assumed you have the following in your .env file:
-// TYPESENSE_HOST=xxx.a1.typesense.net
-// TYPESENSE_PORT=443
-// TYPESENSE_PROTOCOL=https
-
-export const onChallengeWrite = functions.runWith({ secrets: [typesenseApiKey] }).firestore
-  .document("challenges/{challengeId}")
+export const onchallengewrite = functions.firestore
+  .document('challenges/{challengeId}')
   .onWrite(async (change, context) => {
-    // Initialize Typesense client inside the function
-    const typesense = new Client({
-      nodes: [
-        {
-          host: process.env.TYPESENSE_HOST as string,
-          port: Number(process.env.TYPESENSE_PORT as string),
-          protocol: process.env.TYPESENSE_PROTOCOL as string,
-        },
-      ],
-      apiKey: typesenseApiKey.value(),
-    });
+    const { challengeId } = context.params;
 
-    const challengeId = context.params.challengeId;
+    // Get the new and old data
+    const newData = change.after.data();
+    const oldData = change.before.data();
 
-    // Handle document deletion
-    if (!change.after.exists) {
-      try {
-        await typesense.collections("challenges").documents(challengeId).delete();
-        console.log(`Challenge ${challengeId} deleted from Typesense.`);
-      } catch (error) {
-        console.error(`Error deleting challenge ${challengeId} from Typesense:`, error);
-      }
-      return;
+    // We only care about new documents or documents where the description has changed
+    if (!newData) {
+      return null; // Document was deleted
     }
 
-    // Handle document creation or update
-    const challengeData = change.after.data();
-    if (challengeData) {
-      try {
-        await typesense
-          .collections("challenges")
-          .documents()
-          .upsert({ id: challengeId, ...challengeData });
-        console.log(`Challenge ${challengeId} indexed in Typesense.`);
-      } catch (error) {
-        console.error(`Error indexing challenge ${challengeId} in Typesense:`, error);
-      }
+    // Trigger condition: A new challenge is created with a description but no tags.
+    const isNewChallenge = !oldData && newData.status === 'draft';
+    const needsEnrichment = newData.description && (!newData.tags || newData.tags.length === 0);
+
+    if (isNewChallenge && needsEnrichment) {
+        logger.info(`Challenge ${challengeId} requires AI metadata enrichment.`);
+
+        try {
+            // Call the AI service to get metadata
+            const metadata = await extractChallengeMetadata(newData.description);
+
+            // Update the challenge document with the new metadata
+            const challengeRef = db.collection('challenges').doc(challengeId);
+            await challengeRef.update({
+                tags: metadata.tags,
+                budget_estimate: metadata.budget_estimate,
+                publicAlias: metadata.public_alias,
+                last_updated: Date.now(), // Update timestamp
+            });
+
+            logger.info(`Successfully enriched challenge ${challengeId} with AI metadata.`);
+            return null;
+
+        } catch (error) {
+            logger.error(`Error enriching challenge ${challengeId}:`, error);
+            return null;
+        }
     }
+
+    return null;
   });
