@@ -1,33 +1,47 @@
+# Blueprint: Authentication & User Creation
 
-# Project Blueprint
+This document outlines the plan for implementing the authentication and user creation logic for the application.
 
 ## Overview
 
-This project demonstrates a monorepo setup with a React-based web application (`apps/web`) and a shared package (`packages/shared`). The key feature of this setup is the enforcement of a "type boundary" between the client-side and server-side code. This ensures that server-side modules, such as `firebase-admin`, are not accidentally imported into the client-side application, which would cause build failures and runtime errors.
+The goal is to provide a secure and seamless authentication experience for users, supporting multiple social login providers. The system will also handle user creation and invitations.
 
-## Type Boundary Test
+## Plan
 
-To validate the type boundary, a test was conducted to ensure that the Vite build process for the `apps/web` application would fail if it attempted to import a server-side module from the `packages/shared` directory.
+### 1. Interactive Configuration
 
-### Steps
+*   [ ] **Action:** Prompt the user for OAuth Client IDs and Secrets for Google, LinkedIn, and Microsoft.
+*   [ ] **Action:** Explain how to configure the Callback URLs in the Firebase Console.
 
-1.  **Project Setup**: A monorepo structure was created with `apps/web` for the React application and `packages/shared` for the shared code.
-2.  **Shared Packages**: Two files were created in `packages/shared`:
-    *   `firebase-admin.ts`: Exports the `firebase-admin` module, marking it as a server-side only module.
-    *   `firebase-client.ts`: Exports the `firebase/app` module, intended for client-side use.
-3.  **Web Application**: A basic React application was created in `apps/web` with the following key files:
-    *   `package.json`: Defines the project dependencies and build scripts.
-    *   `vite.config.ts`: Configures the Vite build process, including an alias for the `@bridge/shared` package.
-    *   `src/main.tsx`: The main entry point for the React application.
-    *   `src/App.tsx`: The root component of the application.
-    *   `index.html`: The main HTML file for the web app.
-4.  **The Test**: The `App.tsx` component was modified to import `useFirebaseAdmin` from `@bridge/shared/firebase-admin`. This is an invalid import because `firebase-admin` is a server-side module.
-5.  **Build Execution**: The `npm run build --prefix apps/web` command was executed to build the web application.
+### 2. Frontend (apps/web)
 
-### Results
+*   [ ] **Component:** Create a `LoginPage` component to display the social login buttons.
+*   [ ] **Routing:** Add a `/login` route for the `LoginPage`.
+*   [ ] **Providers:**
+    *   [ ] Integrate Firebase Authentication with the Google provider.
+    *   [ ] Integrate Firebase Authentication with the LinkedIn (OIDC) provider.
+    *   [ ] Integrate Firebase Authentication with the Microsoft (SSO) provider.
+*   [ ] **UI:**
+    *   [ ] Create a loading/polling state after login to wait for the user profile to be created by the `onUserCreate` function.
+    *   [ ] Create an "Invalid Link" page for expired or invalid magic links.
+    *   [ ] Add a "Resend Invite" button to the "Invalid Link" page.
 
-The build process failed with an error indicating that the `firebase-admin` module could not be resolved. This is the expected outcome and confirms that the type boundary is working correctly. The Vite build system, through its configuration and the nature of the modules, prevented the server-side code from being bundled with the client-side application.
+### 3. Backend (Cloud Functions)
 
-### Conclusion
+*   [ ] **Function:** Implement the `onUserCreate` Cloud Function (`functions/src/triggers/onUserCreate.ts`).
+    *   [ ] Create a new user document in the `users` collection in Firestore.
+    *   [ ] Check the `leads` collection for a matching email and claim the shadow profile.
+    *   [ ] Set the `probationaryStatus` field to `true`.
+    *   [ ] Assign a default avatar URL.
+*   [ ] **Function:** Implement the `sendScoutInvite` callable Cloud Function (`functions/src/triggers/sendScoutInvite.ts`).
+    *   [ ] Verify that the caller is a registered "Scout" by checking their custom claims.
+    *   [ ] Implement a suppression check to avoid sending emails to users who have opted out.
+    *   [ ] Use the `resend` library to send the invitation email.
+    *   [ ] Set the `Reply-To` header of the email to the Scout's verified email address.
 
-This test successfully demonstrates the effectiveness of the type boundary in this monorepo setup. By isolating server-side code and preventing its inclusion in the client-side bundle, we can avoid potential runtime errors and ensure a clear separation of concerns between the frontend and backend code.
+### 4. Error Handling
+
+*   [ ] **UI:** Create a dedicated "Invalid Link" page.
+*   [ ] **Logic:** If a Magic Link token is expired or invalid, redirect the user to the "Invalid Link" page.
+*   [ ] **Functionality:** The "Resend Invite" button should trigger a function to send a new invitation.
+

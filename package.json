@@ -13,8 +13,11 @@
     "seed": "vite-node scripts/seed_local_db.ts"
   },
   "dependencies": {
+    "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-dropzone": "^14.3.8",
+    "react-router-dom": "^7.9.6",
     "zod": "^4.1.13"
   },
   "devDependencies": {
@@ -31,6 +34,7 @@
     "firebase-tools": "^13.14.2",
     "globals": "^16.5.0",
     "tailwindcss": "^4.1.17",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
     "vite": "^7.2.2",

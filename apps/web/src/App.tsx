@@ -1,13 +1,31 @@
-import React from 'react';
-import { useFirebaseAdmin } from '@bridge/shared/firebase-admin';
 
-function App() {
-  console.log(useFirebaseAdmin);
-  return (
-    <div>
-      <h1>Web App</h1>
-    </div>
-  );
-}
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import RoleRouter from './hocs/withRole';
+import Inbox from './pages/Inbox';
+import SwitchWorkspace from './components/layout/SwitchWorkspace';
+import NotificationBell from './components/layout/NotificationBell';
+import { AuthProvider } from './hooks/useAuth';
+import Onboarding from './pages/onboarding/Onboarding';
+
+const App = () => (
+  <AuthProvider>
+    <Router>
+      <div className="flex h-screen">
+        <RoleRouter />
+        <div className="absolute top-4 right-4 flex items-center space-x-4">
+          <NotificationBell />
+          <Link to="/inbox">Inbox</Link>
+          <Link to="/onboarding">Onboarding</Link>
+        </div>
+        <SwitchWorkspace />
+      </div>
+      <Routes>
+        <Route path="/inbox" element={<Inbox />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+      </Routes>
+    </Router>
+  </AuthProvider>
+);
 
 export default App;

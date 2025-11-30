@@ -1,13 +1,10 @@
-# To learn more about how to use Nix to configure your environment
-# see: https://developers.google.com/idx/guides/customize-idx-env
 { pkgs, ... }: {
-  # Which nixpkgs channel to use.
   channel = "stable-24.05"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
   packages = [
     pkgs.nodejs_20
     pkgs.jdk
-    pkgs.firebase-cli
+    pkgs.firebase-tools # Corrected from 'firebase-cli'
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -15,32 +12,34 @@
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
       # "vscodevim.vim"
-      "google.gemini-cli-vscode-ide-companion"
     ];
-    workspace = {
-      # Runs when a workspace is first created with this `dev.nix` file
-      onCreate = {
-        npm-install = "npm i --no-audit --no-progress --timing";
-        emulator-install = "firebase emulators:install";
-        # Open editors for the following files by default, if they exist:
-        default.openFiles = [ "src/App.tsx" "src/App.ts" "src/App.jsx" "src/App.js" ];
-      };
-      # To run something each time the workspace is (re)started, use the `onStart` hook
-      onStart = {
-        # The following script will run the Firebase emulators and the Vite dev server
-        # in the background. You can view the logs for these services in the "Processes"
-        # panel in the left-hand sidebar.
-        start-emulators-and-dev = "(firebase emulators:start --project=demo-test &) && npm run dev -- --port $PORT --host 0.0.0.0";
-      };
-    };
-    # Enable previews and customize configuration
+    # Enable previews
     previews = {
       enable = true;
       previews = {
-        web = {
-          command = ["npm" "run" "dev" "--" "--port" "$PORT" "--host" "0.0.0.0"];
-          manager = "web";
-        };
+        # web = {
+        #   # Example: run "npm run dev" with PORT set to IDX's defined port for previews,
+        #   # and show it in drawing's web panel
+        #   command = ["npm" "run" "dev"];
+        #   manager = "web";
+        #   env = {
+        #     # Environment variables to set for your server
+        #     PORT = "$PORT";
+        #   };
+        # };
+      };
+    };
+    # Workspace lifecycle hooks
+    workspace = {
+      # Runs when a workspace is first created
+      onCreate = {
+        # Example: install JS dependencies from NPM
+        # npm-install = "npm install";
+      };
+      # Runs when the workspace is (re)started
+      onStart = {
+        # Example: start a background task to watch and re-build backend code
+        # watch-backend = "npm run watch-backend";
       };
     };
   };
