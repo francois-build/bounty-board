@@ -1,6 +1,7 @@
 export interface AuditLogEntry {
-  timestamp: number;
-  level: 'info' | 'warn' | 'error';
-  message: string;
-  context: Record<string, any>;
+    event: string;
+    uid: string;
+    timestamp: number;
+    details: string;
+    [key: string]: any; 
 }

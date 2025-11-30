@@ -32,6 +32,48 @@ async function generateContent(parts: any[]) {
     return result.response;
 }
 
+export async function extractChallengeMetadata(description: string): Promise<{ tags: string[]; budget_estimate: string; public_alias: string; }> {
+    const parts = [
+        {
+            text: `
+                Analyze the following project description and extract the following information:
+                1.  **Tags**: A list of relevant technical and business keywords (e.g., "React", "Firebase", "Fintech", "AI").
+                2.  **Budget Estimate**: A rough, non-binding budget range for the project (e.g., "$500 - $1,500", "$10,000 - $25,000").
+                3.  **Public Alias**: A short, catchy, and professional-sounding project name.
+
+                Description:
+                "${description}"
+
+                Return the output as a valid JSON object with the keys "tags", "budget_estimate", and "public_alias".
+                Do not include any other text or markdown formatting in your response.
+                Example:
+                {
+                    "tags": ["React", "Firebase", "Real-time Chat"],
+                    "budget_estimate": "$2,000 - $5,000",
+                    "public_alias": "ChatSpark"
+                }
+            `
+        },
+    ];
+
+    const result = await model.generateContent({
+        contents: [{ role: 'user', parts }],
+        generationConfig,
+        safetySettings,
+    });
+
+    const responseText = result.response.text();
+    const jsonText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    try {
+        const metadata = JSON.parse(jsonText);
+        return metadata;
+    } catch (error) {
+        console.error("Failed to parse AI response as JSON:", jsonText, error);
+        throw new functions.https.HttpsError('internal', 'Failed to parse AI metadata response.');
+    }
+}
+
 export const onMessageCreate = functions.firestore.document('/chats/{chatId}/messages/{messageId}').onCreate(async (snap, context) => {
     if (snap.data().role === 'user') {
         const parts = snap.data().parts;
@@ -40,14 +82,14 @@ export const onMessageCreate = functions.firestore.document('/chats/{chatId}/mes
         await admin.firestore().collection('chats').doc(context.params.chatId).collection('messages').add({ 
             parts: response.text(), 
             role: 'model', 
-            createdAt: admin.firestore.FieldValue.serverTimestamp() 
+            createdAt: Date.now() 
         });
 
         // Log the interaction for auditing
         const logEntry: AuditLogEntry = {
             event: 'Gemini AI Interaction',
             uid: snap.data().uid, // Assuming uid is stored on the message
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            timestamp: Date.now(),
             details: `User query: ${parts.map((p: any) => p.text).join(' ')}`,
         };
         await admin.firestore().collection('audit_log').add(logEntry);

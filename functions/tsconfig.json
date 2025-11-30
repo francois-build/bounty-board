@@ -9,6 +9,7 @@
     "strict": true,
     "target": "es2017",
     "skipLibCheck": true,
+    "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
       "@/shared/*": ["../packages/shared/src/*"]

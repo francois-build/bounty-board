@@ -61,8 +61,9 @@ describe('Core Business Logic', () => {
 
       // Mock a 500 error from the OpenAI API
       const openai = await import('openai');
-      const mockCreate = openai.default.prototype.completions.create;
-      mockCreate.mockRejectedValue(new Error('OpenAI API is down'));
+      const mockInstance = new (openai as any).default();
+      const mockCreate = mockInstance.completions.create;
+      (mockCreate as vi.Mock).mockRejectedValue(new Error('OpenAI API is down'));
 
       const result = await wrapped(data, context);
 

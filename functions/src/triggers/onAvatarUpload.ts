@@ -17,10 +17,11 @@ export const onAvatarUpload = functions.storage.object().onFinalize(async (objec
   const bucket = admin.storage().bucket(object.bucket);
   const filePath = object.name;
   const file = bucket.file(filePath);
+  const gcsUri = `gs://${object.bucket}/${filePath}`;
 
   try {
     console.log(`Scanning image for safety: ${filePath}`);
-    const [result] = await visionClient.safeSearchDetection(file);
+    const [result] = await visionClient.safeSearchDetection(gcsUri);
     const safeSearch = result.safeSearchAnnotation;
 
     if (safeSearch && (safeSearch.adult === 'VERY_LIKELY' || safeSearch.racy === 'VERY_LIKELY' || safeSearch.violence === 'VERY_LIKELY')) {
@@ -35,7 +36,7 @@ export const onAvatarUpload = functions.storage.object().onFinalize(async (objec
         uid: uid,
         filePath: filePath,
         annotation: safeSearch,
-        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        timestamp: Date.now(),
       });
 
       // Flag the user account

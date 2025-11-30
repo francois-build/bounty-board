@@ -25,7 +25,8 @@
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "firebase-functions-test": "^3.0.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.14"
   },
   "engines": {
     "node": "20"

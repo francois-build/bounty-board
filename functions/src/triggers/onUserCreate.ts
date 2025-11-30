@@ -1,18 +1,20 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import { onUserCreated } from 'firebase-functions/v2/identity';
-import { User } from '../../../packages/shared/src/schemas';
 import { AuditLogEntry } from '../../../packages/shared/src/types';
 
-// This function triggers when a new user is created.
-// We're using the onUserCreated trigger from the identity API.
+// Define the User interface locally
+interface User {
+  uid: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+  status: string;
+  roles: string[];
+}
 
-export const onusercreate = onUserCreated(async (event) => {
-  const user = event.data;
-  const uid = user.uid;
-  const email = user.email;
-  const displayName = user.displayName;
-  const photoURL = user.photoURL;
+// This function triggers when a new user is created.
+export const onusercreate = functions.auth.user().onCreate(async (user) => {
+  const { uid, email, displayName, photoURL } = user;
 
   // Prepare the user document to be stored in Firestore
   const userDocument: User = {
@@ -34,7 +36,7 @@ export const onusercreate = onUserCreated(async (event) => {
     const logEntry: AuditLogEntry = {
       event: 'User Account Created',
       uid: uid,
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: Date.now(),
       details: `New user signed up with email: ${email}`,
     };
     await admin.firestore().collection('audit_log').add(logEntry);

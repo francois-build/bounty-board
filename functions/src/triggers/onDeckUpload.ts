@@ -13,9 +13,10 @@ export const onDeckUpload = functions.storage.object().onFinalize(async (object)
 
   const bucket = admin.storage().bucket(object.bucket);
   const file = bucket.file(object.name);
+  const gcsUri = `gs://${object.bucket}/${object.name}`;
 
   // Check the image for unsafe content.
-  const [result] = await client.safeSearchDetection(file);
+  const [result] = await client.safeSearchDetection(gcsUri);
   const safeSearch = result.safeSearchAnnotation;
 
   if (safeSearch && (safeSearch.adult === 'VERY_LIKELY' || safeSearch.racy === 'VERY_LIKELY')) {
@@ -27,7 +28,7 @@ export const onDeckUpload = functions.storage.object().onFinalize(async (object)
     const logEntry: AuditLogEntry = {
       event: 'Blocked NSFW Deck Upload',
       uid: object.name.split('/')[1], // Extract UID from the file path
-      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      timestamp: Date.now(),
       details: `Deleted unsafe deck image: ${object.name}`,
     };
     await admin.firestore().collection('audit_log').add(logEntry);
