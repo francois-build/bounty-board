@@ -8,13 +8,13 @@
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest"
   },
   "engines": {
     "node": "20"
   },
   "main": "lib/index.js",
-  "type": "module",
   "dependencies": {
     "algoliasearch": "^4.22.1",
     "dotenv": "^17.2.3",
