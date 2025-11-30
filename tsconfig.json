@@ -9,5 +9,10 @@
     "paths": {
       "@bridge/shared/*": ["packages/shared/*"]
     }
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "NodeNext"
+    }
   }
 }

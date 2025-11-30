@@ -1,5 +1,4 @@
-
-import * as admin from 'firebase-admin';
+import admin from 'firebase-admin';
 
 // --- Configuration ---
 // Connect to the emulator if FIRESTORE_EMULATOR_HOST is set, otherwise connect to the actual project
