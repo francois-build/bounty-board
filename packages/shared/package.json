@@ -1,0 +1,11 @@
+{
+  "name": "@bridge/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "zod": "^3.22.4"
+  }
+}
