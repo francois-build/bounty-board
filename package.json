@@ -1,32 +1,40 @@
 {
   "name": "bounty-board-monorepo",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "npm run dev --workspace=@bounty-board/core",
+    "dev:all": "npm-run-all -p dev:*",
+    "dev:admin": "npm run dev --workspace=@bounty-board/admin -- --port 9002 --host 0.0.0.0",
+    "dev:core": "npm run dev --workspace=@bounty-board/core -- --port 9000 --host 0.0.0.0",
+    "dev:link": "npm run dev --workspace=@bounty-board/link -- --port 9001 --host 0.0.0.0",
+    "dev:www": "npm run dev --workspace=@bounty-board/www -- --port 9003 --host 0.0.0.0",
+    "emulators": "firebase emulators:start --project=demo-project",
+    "emulators:hosting": "firebase emulators:start --only hosting --project=demo-project",
+    "build": "npm run build --workspaces --if-present",
+    "build:functions": "npm run build --workspace=functions",
+    "deploy:functions": "firebase deploy --only functions",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "functions"
   ],
-  "scripts": {
-    "dev:core": "npm run dev --workspace=@bounty-board/core",
-    "dev:link": "npm run dev --workspace=@bounty-board/link",
-    "dev:www": "npm run dev --workspace=@bounty-board/www",
-    "dev:admin": "npm run dev --workspace=@bounty-board/admin",
-    "dev:all": "npm run dev --workspaces --if-present",
-    "build": "npm run build --workspaces",
-    "lint": "npm run lint --workspaces",
-    "test": "npm run test --workspaces",
-    "deploy": "firebase deploy",
-    "seed": "ts-node scripts/seed_local_db.ts"
+  "dependencies": {
+    "firebase-admin": "^12.1.1",
+    "firebase-functions": "^5.0.1",
+    "react-hot-toast": "^2.4.1"
   },
   "devDependencies": {
-    "firebase-admin": "^13.6.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "vite": "^5.4.1",
-    "vitest": "^2.0.5"
-  },
-  "engines": {
-    "node": ">=18"
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.5"
   }
 }

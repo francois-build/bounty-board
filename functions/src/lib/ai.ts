@@ -1,89 +1,55 @@
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { AuditLogEntry } from '../../../packages/shared/src/types';
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import * as logger from "firebase-functions/logger";
-import { getFirestore } from "firebase-admin/firestore";
-import { AuditLogEntry } from "../../../../packages/shared/src/types";
+const MODEL_NAME = 'gemini-1.0-pro';
+const API_KEY = process.env.GEMINI_API_KEY;
 
-const db = getFirestore();
-
-// Initialize the Google Generative AI client
-// Ensure GEMINI_API_KEY is set in your environment variables
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
-interface ChallengeMetadata {
-  tags: string[];
-  budget_estimate: number | null;
-  public_alias: string;
+if (!API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is not set.');
 }
 
-/**
- * Extracts structured metadata from a challenge description using an AI model.
- * @param {string} description The free-text description of the challenge.
- * @returns {Promise<ChallengeMetadata>} A promise that resolves to the extracted metadata.
- */
-export async function extractChallengeMetadata(description: string): Promise<ChallengeMetadata> {
-  const defaultResponse: ChallengeMetadata = {
-    tags: [],
-    budget_estimate: null,
-    public_alias: 'Challenge',
-  };
+const genAI = new GoogleGenerativeAI(API_KEY);
+const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
-  try {
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-pro",
-        generationConfig: { responseMimeType: "application/json" },
-    });
+const generationConfig = {
+    temperature: 0.9,
+    topK: 1,
+    topP: 1,
+    maxOutputTokens: 2048,
+};
 
-    const prompt = `
-      Analyze the following project description and extract the specified information.
-      Your response MUST be a valid JSON object.
+const safetySettings = [
+    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+];
 
-      Description:
-      "${description}"
-
-      Extract the following fields:
-      1.  tags: An array of 2-5 relevant strings for categorization (e.g., "Fintech", "React Native", "AI", "Data Science", "Healthcare").
-      2.  budget_estimate: A number representing the estimated budget in USD. If no budget is mentioned, set this to null.
-      3.  public_alias: A short, generalized, non-identifiable title for the project (e.g., "Mobile App for Logistics" instead of "FedEx's New Driver App").
-
-      JSON Output:
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    const parsedResult: ChallengeMetadata = JSON.parse(text);
-    
-    // Basic validation
-    if (!parsedResult.tags || !Array.isArray(parsedResult.tags)) {
-        parsedResult.tags = [];
-    }
-    if (typeof parsedResult.budget_estimate !== 'number') {
-        parsedResult.budget_estimate = null;
-    }
-    if (typeof parsedResult.public_alias !== 'string' || parsedResult.public_alias.length === 0) {
-        parsedResult.public_alias = 'Challenge';
-    }
-
-    return parsedResult;
-
-  } catch (error) {
-    logger.error("Error in extractChallengeMetadata AI call:", error);
-
-    // AI Governance: Log the failure to the audit log
-    const auditLog: AuditLogEntry = {
-      timestamp: Date.now(),
-      level: "error",
-      message: "AI metadata extraction failed.",
-      context: { 
-        service: "extractChallengeMetadata", 
-        error: error instanceof Error ? error.message : String(error),
-      },
-    };
-    await db.collection("sys_audit_logs").add(auditLog);
-
-    // AI Governance: Fail open by returning a default/empty value
-    return defaultResponse;
-  }
+async function generateContent(parts: any[]) {
+    const result = await model.generateContent({ contents: [{ role: 'user', parts }], generationConfig, safetySettings });
+    return result.response;
 }
+
+export const onMessageCreate = functions.firestore.document('/chats/{chatId}/messages/{messageId}').onCreate(async (snap, context) => {
+    if (snap.data().role === 'user') {
+        const parts = snap.data().parts;
+        const response = await generateContent(parts);
+
+        await admin.firestore().collection('chats').doc(context.params.chatId).collection('messages').add({ 
+            parts: response.text(), 
+            role: 'model', 
+            createdAt: admin.firestore.FieldValue.serverTimestamp() 
+        });
+
+        // Log the interaction for auditing
+        const logEntry: AuditLogEntry = {
+            event: 'Gemini AI Interaction',
+            uid: snap.data().uid, // Assuming uid is stored on the message
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            details: `User query: ${parts.map((p: any) => p.text).join(' ')}`,
+        };
+        await admin.firestore().collection('audit_log').add(logEntry);
+    }
+});

@@ -1,116 +1,46 @@
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
+import { onUserCreated } from 'firebase-functions/v2/identity';
+import { User } from '../../../packages/shared/src/schemas';
+import { AuditLogEntry } from '../../../packages/shared/src/types';
 
-import * as logger from "firebase-functions/logger";
-import { onUserCreated } from "firebase-auth/functions";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { initializeApp, getApps } from "firebase-admin/app";
-import { User } from "../../../../packages/shared/src/schemas";
-import { AuditLogEntry } from "../../../../packages/shared/src/types";
-
-if (getApps().length === 0) {
-  initializeApp();
-}
-
-const db = getFirestore();
+// This function triggers when a new user is created.
+// We're using the onUserCreated trigger from the identity API.
 
 export const onusercreate = onUserCreated(async (event) => {
-  const { uid, email, customClaims } = event.data;
-  logger.info(`New user created: ${uid} with email: ${email}`);
+  const user = event.data;
+  const uid = user.uid;
+  const email = user.email;
+  const displayName = user.displayName;
+  const photoURL = user.photoURL;
 
-  const userRef = db.collection("users").doc(uid);
+  // Prepare the user document to be stored in Firestore
+  const userDocument: User = {
+    uid,
+    email,
+    displayName,
+    photoURL,
+    // Initialize with default values, assuming they will be updated later
+    status: 'active',
+    roles: ['user'],
+  };
 
+  // Create the user document in the 'users' collection
   try {
-    const userDoc = await userRef.get();
-    if (userDoc.exists) {
-      logger.warn(`User document for ${uid} already exists. Exiting.`);
-      return;
-    }
+    await admin.firestore().collection('users').doc(uid).set(userDocument);
+    console.log(`Successfully created user document for UID: ${uid}`);
 
-    let newUser: Omit<User, 'id'>;
-    let auditMessage = "";
-
-    const inviteCode = customClaims?.inviteCode as string | undefined;
-    let referredBy: string | null = null;
-
-    if (inviteCode) {
-      const inviteQuery = db.collection('sys_invites').where('code', '==', inviteCode).limit(1);
-      const inviteSnapshot = await inviteQuery.get();
-      if (!inviteSnapshot.empty) {
-        const inviteData = inviteSnapshot.docs[0].data();
-        referredBy = inviteData.scoutId;
-        logger.info(`User ${uid} was referred by scout ${referredBy} using code ${inviteCode}`);
-        
-        const scoutRef = db.collection('users').doc(referredBy!);
-        await scoutRef.update({ referralCount: FieldValue.increment(1) });
-
-        const referralAuditLog: AuditLogEntry = {
-            timestamp: Date.now(),
-            level: 'info',
-            message: `Successful referral attribution: New user ${uid} referred by scout ${referredBy}.`,
-            context: { newUserId: uid, scoutId: referredBy, inviteCode },
-        };
-        await db.collection("sys_audit_logs").add(referralAuditLog);
-      }
-    }
-
-    if (email) {
-      const leadsQuery = db.collection("leads").where("email", "==", email).limit(1);
-      const leadsSnapshot = await leadsQuery.get();
-
-      if (!leadsSnapshot.empty) {
-        const leadDoc = leadsSnapshot.docs[0];
-        const leadData = leadDoc.data();
-        
-        newUser = {
-          ...leadData,
-          status: 'verified',
-          ownerId: uid,
-          referredBy,
-        } as Omit<User, 'id'>;
-        
-        await leadDoc.ref.update({ claimed: true });
-        auditMessage = `User ${uid} claimed from lead ${leadDoc.id}.`;
-        logger.info(auditMessage);
-      } else {
-        newUser = {
-          role: 'unknown',
-          status: 'probationary',
-          gmv_total: 0,
-          ownerId: uid,
-          referredBy,
-        };
-        auditMessage = `New probationary user ${uid} created.`;
-        logger.info(auditMessage);
-      }
-    } else {
-        newUser = {
-            role: 'unknown',
-            status: 'probationary',
-            gmv_total: 0,
-            ownerId: uid,
-            referredBy,
-        };
-        auditMessage = `New probationary user ${uid} created without email.`;
-        logger.warn(auditMessage);
-    }
-    
-    await userRef.set(newUser);
-
-    const auditLog: AuditLogEntry = {
-      timestamp: Date.now(),
-      level: "info",
-      message: auditMessage,
-      context: { userId: uid, email },
+    // Log the creation event in the audit log
+    const logEntry: AuditLogEntry = {
+      event: 'User Account Created',
+      uid: uid,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      details: `New user signed up with email: ${email}`,
     };
-    await db.collection("sys_audit_logs").add(auditLog);
+    await admin.firestore().collection('audit_log').add(logEntry);
 
   } catch (error) {
-    logger.error("Error in onUserCreate trigger:", error);
-    const errorAuditLog: AuditLogEntry = {
-        timestamp: Date.now(),
-        level: "error",
-        message: "Failed to process new user creation.",
-        context: { userId: uid, email, error: error instanceof Error ? error.message : String(error) },
-    };
-    await db.collection("sys_audit_logs").add(errorAuditLog);
+    console.error(`Error creating user document or audit log for UID: ${uid}`, error);
+    // Optional: Add more robust error handling, like sending a notification
   }
 });

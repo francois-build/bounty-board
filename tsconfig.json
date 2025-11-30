@@ -1,18 +1,19 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist",
+    "rootDir": "./",
     "baseUrl": ".",
     "paths": {
-      "@bridge/shared/*": ["packages/shared/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "ts-node": {
-    "compilerOptions": {
-      "module": "NodeNext"
-    }
-  }
+  "include": ["src/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }
