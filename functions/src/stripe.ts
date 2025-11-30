@@ -19,24 +19,27 @@ export const createPaymentIntent = functions.https.onCall(async (data, context) 
   }
 
   const { amount, currency, paymentMethodId, description, metadata, challengeId } = data;
+  const uid = context.auth.uid;
 
   if (!amount || !currency) {
     throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a valid amount and currency.');
   }
 
   let application_fee_amount = 0;
+  const userDoc = await admin.firestore().collection('users').doc(uid).get();
+  const isConcierge = userDoc.exists && userDoc.data()?.isConcierge; // Assuming isConcierge flag on user
 
   if (challengeId) {
     const challengeDoc = await admin.firestore().collection('challenges').doc(challengeId).get();
-    if (challengeDoc.exists && challengeDoc.data()?.isBuildEvent) {
+    if ((challengeDoc.exists && challengeDoc.data()?.isBuildEvent) || isConcierge) {
       application_fee_amount = 0;
     } else {
-      // As per monetization_matrix.md, calculate standard fee. Using 5% as a placeholder.
-      application_fee_amount = Math.round(amount * 0.05);
+      // As per monetization_matrix.md, calculate standard 10% fee.
+      application_fee_amount = Math.round(amount * 0.10);
     }
   } else {
     // Default fee for payments not associated with a challenge
-    application_fee_amount = Math.round(amount * 0.05);
+    application_fee_amount = Math.round(amount * 0.10);
   }
 
   try {
