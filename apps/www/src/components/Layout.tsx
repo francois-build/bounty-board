@@ -1,4 +1,5 @@
 import React from 'react';
+import { CORE_URL } from '@bounty-board/shared/config';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -9,8 +10,8 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
         <div className="flex items-center space-x-4">
           <a href="/government" className="text-slate-600 hover:text-slate-900">For Governments</a>
-          <a href="https://core.bridge.app/login" className="text-slate-600 hover:text-slate-900">Login</a>
-          <a href="#" className="bg-slate-900 text-white px-4 py-2 rounded-md shadow-lg active:scale-98">Get Started</a>
+          <a href={`${CORE_URL}/login`} className="text-slate-600 hover:text-slate-900">Login</a>
+          <a href={`${CORE_URL}/signup`} className="bg-slate-900 text-white px-4 py-2 rounded-md shadow-lg active:scale-98">Get Started</a>
         </div>
       </nav>
       <main>{children}</main>

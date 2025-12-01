@@ -227,7 +227,7 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
   }
 
   switch (event.type) {
-    case 'payment_intent.succeeded':
+    case 'payment_intent.succeeded': {
       const paymentIntent = event.data.object;
       const milestoneQuery = await db.collection('milestones').where('paymentIntentId', '==', paymentIntent.id).get();
       if (!milestoneQuery.empty) {
@@ -236,12 +236,14 @@ exports.stripeWebhook = functions.https.onRequest(async (req, res) => {
           console.log(`Milestone ${milestoneDoc.id} successfully funded.`);
       }
       break;
-    case 'account.updated':
+    }
+    case 'account.updated': {
       const account = event.data.object;
       if (account.charges_enabled && account.details_submitted) {
         console.log(`Account ${account.id} is now enabled for charges.`);
       }
       break;
+    }
     default:
       console.log(`Unhandled event type ${event.type}`);
   }
