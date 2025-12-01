@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -12,7 +11,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@bridge/shared': path.resolve(__dirname, '../../packages/shared'),
+      '@bounty-board/shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@': path.resolve(__dirname, 'src'),
     },
   },
