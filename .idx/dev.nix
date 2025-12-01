@@ -2,8 +2,9 @@
   channel = "stable-24.05"; # or "unstable"
   # Use https://search.nixos.org/packages to find packages
   packages = [
-    pkgs.nodejs_22
-    pkgs.firebase-tools
+    pkgs.nodejs_20
+    pkgs.nodePackages.firebase-tools
+    pkgs.jdk17 # <--- ADDED
   ];
   # Sets environment variables in the workspace
   env = {};
@@ -26,12 +27,14 @@
     workspace = {
       # Runs when a workspace is first created
       onCreate = {
-        npm-install = "npm install";
+        "npm-install" = "npm install";
+        # Installs dependencies and links workspaces
+        "install-deps" = "bash fix_dependencies.sh"; # <--- ADDED
       };
       # Runs when the workspace is (re)started
       onStart = {
         # Start Firebase emulators in the background
-        # emulators = "firebase emulators:start";
+        # "emulators" = "firebase emulators:start";
       };
     };
   };

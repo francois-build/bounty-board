@@ -1,5 +1,7 @@
 {
   "firestore": {
+    "database": "(default)",
+    "location": "nam5",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
@@ -18,26 +20,20 @@
       ]
     }
   ],
-  "hosting": [
-    {
-      "target": "core",
-      "public": "apps/core/dist",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }]
-    },
-    {
-      "target": "link",
-      "public": "apps/link/dist",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }]
-    },
-    {
-      "target": "www",
-      "public": "apps/www/dist",
-      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-      "rewrites": [{ "source": "**", "destination": "/index.html" }]
-    }
-  ],
+  "hosting": {
+    "public": "apps/core/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
   "storage": {
     "rules": "storage.rules"
   },
@@ -54,6 +50,9 @@
     "ui": {
       "enabled": true
     },
-    "singleProjectMode": true
+    "singleProjectMode": true,
+    "hosting": {
+      "port": 5000
+    }
   }
 }

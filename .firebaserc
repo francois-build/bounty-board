@@ -1,0 +1,21 @@
+{
+  "projects": {
+    "default": "bridge-by-mosaic"
+  },
+  "targets": {
+    "bridge-by-mosaic": {
+      "hosting": {
+        "core": [
+          "bounty-board-core"
+        ],
+        "link": [
+          "bounty-board-link"
+        ],
+        "www": [
+          "bounty-board-www"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

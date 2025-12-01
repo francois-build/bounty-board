@@ -1,7 +1,9 @@
 import * as admin from 'firebase-admin';
 
 export const searchOrPivot = async (data: any) => {
-  const { q, query_by, filter_by, industry } = data;
+  // const { q, query_by, filter_by, industry } = data;
+  const { industry } = data;
+
 
   // Assuming a search client is available, e.g., Typesense
   // const searchResults = await searchClient.collections('challenges').documents().search({

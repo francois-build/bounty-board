@@ -1,44 +1,9 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPaymentIntent = void 0;
-const functions = __importStar(require("firebase-functions"));
-const stripe_1 = __importDefault(require("stripe"));
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const stripe_1 = require("stripe");
 if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('STRIPE_SECRET_KEY environment variable is not set.');
 }
@@ -49,12 +14,31 @@ const stripe = new stripe_1.default(process.env.STRIPE_SECRET_KEY, {
  * Creates a Stripe payment intent.
  */
 exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
+    var _a, _b;
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
-    const { amount, currency, paymentMethodId, description, metadata } = data;
+    const { amount, currency, paymentMethodId, description, metadata, challengeId } = data;
+    const uid = context.auth.uid;
     if (!amount || !currency) {
         throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a valid amount and currency.');
+    }
+    let application_fee_amount = 0;
+    const userDoc = await admin.firestore().collection('users').doc(uid).get();
+    const isConcierge = userDoc.exists && ((_a = userDoc.data()) === null || _a === void 0 ? void 0 : _a.isConcierge); // Assuming isConcierge flag on user
+    if (challengeId) {
+        const challengeDoc = await admin.firestore().collection('challenges').doc(challengeId).get();
+        if ((challengeDoc.exists && ((_b = challengeDoc.data()) === null || _b === void 0 ? void 0 : _b.isBuildEvent)) || isConcierge) {
+            application_fee_amount = 0;
+        }
+        else {
+            // As per monetization_matrix.md, calculate standard 10% fee.
+            application_fee_amount = Math.round(amount * 0.10);
+        }
+    }
+    else {
+        // Default fee for payments not associated with a challenge
+        application_fee_amount = Math.round(amount * 0.10);
     }
     try {
         const paymentIntent = await stripe.paymentIntents.create({
@@ -64,6 +48,7 @@ exports.createPaymentIntent = functions.https.onCall(async (data, context) => {
             payment_method: paymentMethodId,
             payment_method_types: ['card'],
             metadata: metadata,
+            application_fee_amount: application_fee_amount,
             automatic_payment_methods: { enabled: true },
         });
         return { clientSecret: paymentIntent.client_secret };

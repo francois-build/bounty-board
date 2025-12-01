@@ -4,19 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run dev --workspace=@bounty-board/core",
-    "dev:all": "npm-run-all -p dev:admin dev:core dev:link dev:www",
-    "dev:admin": "npm run dev --workspace=@bounty-board/admin",
+    "build:functions": "npm run build --workspace=functions",
     "dev:core": "npm run dev --workspace=@bounty-board/core",
     "dev:link": "npm run dev --workspace=@bounty-board/link",
     "dev:www": "npm run dev --workspace=@bounty-board/www",
-    "emulators": "firebase emulators:start --project=demo-project",
-    "emulators:hosting": "firebase emulators:start --only hosting --project=demo-project",
-    "build": "npm run build --workspaces --if-present",
-    "build:functions": "npm run build --workspace=functions",
-    "deploy:functions": "firebase deploy --only functions",
-    "lint": "eslint .",
-    "format": "prettier --write ."
+    "dev:admin": "npm run dev --workspace=@bounty-board/admin",
+    "emulators": "firebase emulators:start --import=./firebase-export --export-on-exit",
+    "dev": "concurrently \"npm run emulators\" \"npm run dev --workspaces --if-present\" --names \"FIREBASE,APPS\" --kill-others",
+    "build": "npm run build --workspaces",
+    "deploy": "firebase deploy"
   },
   "workspaces": [
     "apps/*",
@@ -29,13 +25,15 @@
     "react-hot-toast": "^2.4.1"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "glob": "^13.0.0",
     "npm-run-all": "^4.1.5",
-    "prettier": "^3.2.5",
-    "typescript": "^5.4.5",
+    "prettier": "^3.7.3",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.0"
   }
 }

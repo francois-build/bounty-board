@@ -10,12 +10,16 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@bounty-board/shared": "*",
+    "@tanstack/react-query": "^5.0.0",
+    "axios": "^1.6.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.555.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "axios": "^1.6.0",
-    "@tanstack/react-query": "^5.0.0",
+    "react-dropzone": "^14.3.8",
     "react-google-recaptcha-v3": "^1.10.1",
-    "@bounty-board/shared": "*"
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
