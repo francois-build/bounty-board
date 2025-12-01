@@ -63,7 +63,8 @@ export async function extractChallengeMetadata(description: string): Promise<{ t
     });
 
     const responseText = result.response.text();
-    const jsonText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    const jsonText = jsonMatch ? jsonMatch[0] : "{}";
 
     try {
         const metadata = JSON.parse(jsonText);
@@ -75,6 +76,8 @@ export async function extractChallengeMetadata(description: string): Promise<{ t
 }
 
 export const onMessageCreate = functions.firestore.document('/chats/{chatId}/messages/{messageId}').onCreate(async (snap, context) => {
+    if (!context.auth) return; // Exit if not authenticated
+
     if (snap.data().role === 'user') {
         const parts = snap.data().parts;
         const response = await generateContent(parts);

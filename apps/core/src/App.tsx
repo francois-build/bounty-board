@@ -11,6 +11,7 @@ import CreateChallengeWizard from './pages/onboarding/CreateChallengeWizard';
 import { ClientDashboard } from './pages/client/ClientDashboard';
 import { StartupDashboard } from './pages/startup/StartupDashboard';
 import { ScoutDashboard } from './pages/scout/ScoutDashboard'; // Import ScoutDashboard
+import LoginPage from './pages/LoginPage';
 
 const App = () => (
   <AuthProvider>
@@ -29,6 +30,7 @@ const App = () => (
         <SwitchWorkspace />
       </div>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/inbox" element={<Inbox />} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/create-challenge" element={<CreateChallengeWizard />} />

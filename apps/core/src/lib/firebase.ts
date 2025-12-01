@@ -5,12 +5,14 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "TODO: REPLACE_WITH_YOUR_API_KEY",
-  authDomain: "TODO: REPLACE_WITH_YOUR_AUTH_DOMAIN",
-  projectId: "TODO: REPLACE_WITH_YOUR_PROJECT_ID",
-  storageBucket: "TODO: REPLACE_WITH_YOUR_STORAGE_BUCKET",
-  messagingSenderId: "TODO: REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId: "TODO: REPLACE_WITH_YOUR_APP_ID"
+  projectId: 'bridge-by-mosaic',
+  appId: '1:571030184974:web:c075a652a8da366393485f',
+  storageBucket: 'bridge-by-mosaic.firebasestorage.app',
+  apiKey: 'AIzaSyAbPZCgfpVdf6QjqUBaejpnD775793fgA4',
+  authDomain: 'bridge-by-mosaic.firebaseapp.com',
+  messagingSenderId: '571030184974',
+  projectNumber: '571030184974',
+  version: '2'
 };
 
 // Initialize Firebase

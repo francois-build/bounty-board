@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userDocRef = doc(db, `users/${authUser.uid}`);
         const unsubProfile = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
-            setProfile(doc.data() as UserProfile);
+            setProfile({ id: doc.id, ...doc.data() } as UserProfile);
           } else {
             setProfile(null);
           }
